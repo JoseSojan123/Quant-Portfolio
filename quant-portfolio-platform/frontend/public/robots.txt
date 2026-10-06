@@ -1,0 +1,24 @@
+# Public pages are indexable; everything behind a session is not useful to a crawler.
+User-agent: *
+Allow: /
+Allow: /methodology
+Allow: /about
+Disallow: /dashboard
+Disallow: /portfolio
+Disallow: /optimize
+Disallow: /efficient-frontier
+Disallow: /risk
+Disallow: /stress-test
+Disallow: /monte-carlo
+Disallow: /rebalance
+Disallow: /what-if
+Disallow: /backtest
+Disallow: /settings
+Disallow: /profile
+Disallow: /onboarding
+Disallow: /login
+Disallow: /signup
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /verify-email
+Disallow: /api/

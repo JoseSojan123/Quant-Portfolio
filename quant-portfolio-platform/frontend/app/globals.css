@@ -1,0 +1,160 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  /* chart tokens (dataviz reference palette, validated on white) */
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --series-5: #e87ba4;
+  --series-6: #008300;
+  --series-7: #4a3aa7;
+  --series-8: #e34948;
+  --grid: #efeff2;
+  --axis: #d2d2d7;
+  --muted: #8e8e93;
+}
+
+html,
+body {
+  background: #f5f5f7;
+  color: #1d1d1f;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "cv11", "ss01";
+  letter-spacing: -0.006em;
+  overflow-x: hidden;
+}
+
+::selection {
+  background: rgba(0, 113, 227, 0.18);
+}
+
+@layer components {
+  .card {
+    @apply rounded-3xl bg-white shadow-card;
+  }
+  .card-pad {
+    @apply p-5 sm:p-6;
+  }
+  .label {
+    @apply text-[13px] font-medium text-ink-2;
+  }
+  .input {
+    @apply block w-full rounded-xl border border-[#d2d2d7] bg-white px-3.5 py-2.5 text-[15px] text-ink outline-none transition duration-200 placeholder:text-ink-3 hover:border-[#b8b8bf] focus:border-brand-600 focus:ring-4 focus:ring-brand-600/15 disabled:bg-page sm:text-sm;
+  }
+  /* Frosted glass for the sticky bars: translucent white over whatever scrolls beneath. */
+  .glass {
+    @apply border-hair bg-white/70 backdrop-blur-xl backdrop-saturate-[1.8];
+  }
+  .eyebrow {
+    @apply text-[12px] font-semibold uppercase tracking-[0.08em] text-ink-3;
+  }
+  .text-gradient {
+    @apply bg-gradient-to-r from-brand-600 via-[#3b6ff0] to-indigo-500 bg-clip-text text-transparent;
+  }
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
+  .table-base {
+    @apply w-full text-sm;
+  }
+  /* :where() keeps these element defaults at class-level specificity, so a utility on
+     a cell (text-right, whitespace-normal) wins instead of being silently overridden. */
+  .table-base :where(th) {
+    @apply whitespace-nowrap border-b border-hair px-2.5 py-2.5 text-left text-xs font-medium text-ink-3 first:pl-5 last:pr-5;
+  }
+  .table-base :where(td) {
+    @apply whitespace-nowrap border-b border-hair px-2.5 py-3 text-ink first:pl-5 last:pr-5;
+  }
+  .table-base :where(tbody tr) {
+    @apply transition-colors duration-150 hover:bg-[#fafafc];
+  }
+  .table-base :where(tr:last-child td) {
+    @apply border-b-0;
+  }
+  /* Wide comparison tables (many numeric columns) trade a little padding for fitting. */
+  .table-compact :where(th, td) {
+    @apply px-2 first:pl-5 last:pr-5;
+  }
+  .table-compact :where(th) {
+    @apply whitespace-normal align-bottom;
+  }
+  .table-compact :where(td) {
+    @apply text-[13px];
+  }
+}
+
+/* Recharts: keep focus outlines off the SVG surface (keyboard focus stays on controls). */
+.recharts-wrapper svg:focus,
+.recharts-surface:focus {
+  outline: none;
+}
+
+/* Range input: thin track, white thumb with a soft shadow, filled to the value in the accent. */
+input[type="range"].range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 22px;
+  background: transparent;
+}
+input[type="range"].range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(to right, #0071e3 var(--fill, 50%), #e3e3e8 var(--fill, 50%));
+}
+input[type="range"].range::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: #e3e3e8;
+}
+input[type="range"].range::-moz-range-progress {
+  height: 4px;
+  border-radius: 999px;
+  background: #0071e3;
+}
+input[type="range"].range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  margin-top: -9px;
+  height: 22px;
+  width: 22px;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.12), 0 3px 8px rgba(0, 0, 0, 0.12);
+  transition: transform 0.15s ease;
+}
+input[type="range"].range::-moz-range-thumb {
+  height: 22px;
+  width: 22px;
+  border: 0;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.12), 0 3px 8px rgba(0, 0, 0, 0.12);
+}
+input[type="range"].range:active::-webkit-slider-thumb {
+  transform: scale(1.08);
+}
+input[type="range"].range:focus-visible {
+  outline: none;
+}
+input[type="range"].range:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.25), 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,54 @@
+name: Refresh market data
+
+# Runs after the US close on weekdays, and on demand. The job writes one row to
+# `data_updates` whether it succeeds or fails, so the app can report when the
+# data was last refreshed and whether the last attempt worked.
+on:
+  schedule:
+    - cron: "30 22 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      source:
+        description: "Price source"
+        type: choice
+        options: [yahoo, synthetic]
+        default: yahoo
+      full:
+        description: "Refetch all history instead of an incremental window"
+        type: boolean
+        default: false
+
+jobs:
+  refresh:
+    name: Fetch, validate and store prices
+    runs-on: ubuntu-latest
+    # The job needs a database it can write to. Set DATABASE_URL as a repository
+    # secret; without it, this workflow is skipped rather than failing nightly.
+    if: ${{ github.event_name == 'workflow_dispatch' || vars.ENABLE_DATA_REFRESH == 'true' }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install
+        run: pip install -e ".[dev,postgres]"
+
+      - name: Update prices
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          APP_ENV: production
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::DATABASE_URL secret is not set; nothing to refresh."
+            exit 1
+          fi
+          python jobs/update_market_data.py \
+            --source "${{ inputs.source || 'yahoo' }}" \
+            ${{ inputs.full && '--full' || '' }} \
+            --verbose

@@ -1,0 +1,104 @@
+# Local stack: PostgreSQL, the API, the web app, and a one-shot seed job.
+#
+#   cp .env.example .env     # set JWT_SECRET if this will be reachable by anyone else
+#   docker compose up --build
+#
+# Then open http://localhost:3000. The API is on http://localhost:8000 and its
+# OpenAPI docs on http://localhost:8000/docs.
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-quant}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-quant_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-quant}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-quant} -d ${POSTGRES_DB:-quant}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # Loads the asset universe and the price history once, then exits. The API
+  # would do this itself on first boot; running it as its own service keeps the
+  # web process from serving requests against an empty database.
+  seed:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: ["python", "database/seed/seed.py"]
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-quant}:${POSTGRES_PASSWORD:-quant_dev_password}@db:5432/${POSTGRES_DB:-quant}
+      DATA_SOURCE: ${DATA_SOURCE:-synthetic}
+      JWT_SECRET: ${JWT_SECRET:-dev-only-change-me-in-any-real-deployment}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-quant}:${POSTGRES_PASSWORD:-quant_dev_password}@db:5432/${POSTGRES_DB:-quant}
+      JWT_SECRET: ${JWT_SECRET:-dev-only-change-me-in-any-real-deployment}
+      DATA_SOURCE: ${DATA_SOURCE:-synthetic}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+      REQUIRE_EMAIL_VERIFICATION: ${REQUIRE_EMAIL_VERIFICATION:-true}
+      AUTO_SEED: "true"
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      seed:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      # Server-side only: the browser always talks to /api on its own origin, so
+      # the session cookie stays first-party.
+      API_URL: http://api:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  # Refreshes prices on a schedule. Disabled by default because the synthetic
+  # generator does not need refreshing; start it with:
+  #   docker compose --profile jobs up -d refresh
+  refresh:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    profiles: ["jobs"]
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        while true; do
+          python jobs/update_market_data.py --source "${DATA_SOURCE:-synthetic}" || echo "refresh failed"
+          sleep "${REFRESH_INTERVAL_SECONDS:-86400}"
+        done
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-quant}:${POSTGRES_PASSWORD:-quant_dev_password}@db:5432/${POSTGRES_DB:-quant}
+      JWT_SECRET: ${JWT_SECRET:-dev-only-change-me-in-any-real-deployment}
+      DATA_SOURCE: ${DATA_SOURCE:-synthetic}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:

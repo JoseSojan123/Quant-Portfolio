@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="Quant Portfolio">
+  <rect width="32" height="32" rx="7" fill="#2a78d6"/>
+  <path d="M6 24L12.5 14.5L18 19L26.5 6.5" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <circle cx="26.5" cy="6.5" r="2.6" fill="#ffffff"/>
+</svg>
